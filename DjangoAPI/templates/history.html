@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction History | Bangalore House Price Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top left, #1e293b, #0f172a);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .history-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 18px 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 18px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 15px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .price-tag {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        .date-tag {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            padding: 60px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+            opacity: 0.3;
+        }
+
+        .btn-report {
+            color: #10b981;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-report:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1 style="font-size: 28px; font-weight: 700;">Prediction History</h1>
+                <p style="color: var(--text-muted);">View and manage your past property valuations</p>
+            </div>
+            <div class="nav-links">
+                <a href="{% url 'price_prediction' %}" class="nav-btn">
+                    <i class="fas fa-calculator"></i> Predictor
+                </a>
+                <a href="{% url 'dashboard' %}" class="nav-btn">
+                    <i class="fas fa-chart-line"></i> Insights
+                </a>
+            </div>
+        </div>
+
+        <div class="history-card">
+            {% if history %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Area (Sqft)</th>
+                        <th>BHK / Bath</th>
+                        <th>Predicted Price</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in history %}
+                    <tr>
+                        <td class="date-tag">{{ item.created_at|date:"d M Y, H:i" }}</td>
+                        <td style="font-weight: 500;">{{ item.location|title }}</td>
+                        <td>{{ item.sqft }}</td>
+                        <td>{{ item.bedroom }} / {{ item.bathroom }}</td>
+                        <td class="price-tag">{{ item.predicted_price }}</td>
+                        <td>
+                            <a href="{% url 'download_report' %}?location={{item.location}}&sqft={{item.sqft}}&bathroom={{item.bathroom}}&bedroom={{item.bedroom}}&result={{item.predicted_price}}" class="btn-report">
+                                <i class="fas fa-file-pdf"></i> Report
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>You haven't made any predictions yet.</p>
+                <a href="{% url 'price_prediction' %}" style="color: var(--primary); text-decoration: none; display: inline-block; margin-top: 10px; font-weight: 600;">Start Predicting →</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

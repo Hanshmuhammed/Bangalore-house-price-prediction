@@ -4,151 +4,102 @@
 <head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>Banglore House Price Prediction</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'DjangoAPI/style.css' %}" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <title>Price Calculator | Bangalore House Price Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{% static 'DjangoAPI/style.css' %}?v=1.1" />
 </head>
-<style>
-  .switch-field {
-    display: flex;
-    overflow: hidden;
-}
-
-.switch-field input {
-    position: absolute !important;
-    clip: rect(0, 0, 0, 0);
-    height: 1px;
-    width: 1px;
-    border: 0;
-    overflow: hidden;
-}
-
-.switch-field label {
-    background-color: #f1f1f1;
-    color: #555;
-    font-family: "Roboto", sans-serif;
-    font-size: 14px;
-    line-height: 1;
-    text-align: center;
-    padding: 10px 20px;
-    margin-right: -1px;
-    border: 1px solid #ccc;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease-in-out;
-}
-
-.switch-field label:hover {
-    cursor: pointer;
-    background-color: #eaeaea;
-}
-
-.switch-field input:checked+label {
-    background-color: #FF4F55;
-    box-shadow: none;
-    color: #fff;
-}
-
-.switch-field label:first-of-type {
-    border-radius: 4px 0 0 4px;
-}
-
-.switch-field label:last-of-type {
-    border-radius: 0 4px 4px 0;
-}
-.location {
-  font-family: "Roboto", sans-serif;
-  outline: 0;
-  background: #f8f8f8;
-  width: 100%;
-  border: 0;
-  margin: 0 0 10px;
-  padding: 10px;
-  box-sizing: border-box;
-  font-size: 15px;
-  height: 40px;
-  border-radius: 5px;
-}
-</style>
-<script>
-  const locationSelect = document.getElementById('locationSelect');
-
-  locationSelect.addEventListener('change', (event) => {
-    const selectedOption = event.target.options[event.target.selectedIndex];
-    const selectedValue = selectedOption.dataset.value;
-    console.log(selectedValue); // Output the complete value to the console
-  });
-</script>
-<body  style="background-image: url('https://wallpaperaccess.com/full/1700222.jpg'); background-size:cover"> 
-    <div class="container-fluid">
-        <div class="container" style="max-width:700px;margin-top:50px;padding-bottom:30px;padding-top:30px;background-color: rgba(0, 0, 0, 0.4);">
-            <h2 style="text-align:center;color:#fff">Banglore House Price Calculator</h2>
-            <form method='post' action="{% url 'price_prediction' %}">
-                {% csrf_token %}
-    <div class="form-group" style="max-width:400px;margin:auto;">
-      <label for="exampleInputEmail1" style="color:#fff">Location</label>
-      {% comment %} <input type="text" name="location" class="form-control" aria-describedby="emailHelp" placeholder="Enter location" required> {% endcomment %}
-      <select class="location" id="locationSelect" name="location">
-        <option disabled value="" {% if not selected_location %}selected{% endif %}>Choose location</option>
-
-        {% for i in locations %}
-        <option value="{{i}}" {% if i == selected_location %}selected{% endif %}>{{i}}</option>
-        {% endfor %}
-      </select>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
     </div>
-    <div class="form-group"style="max-width:400px;margin:auto;">
-        <label for="exampleInputEmail1" style="color:#fff">Square Feet</label>
-        <input type="number" min="300" name="square_feet" class="form-control" aria-describedby="emailHelp" placeholder="Enter square feet (min 300)" value="{{ sqft }}" required>
-      </div>
-      <div class="form-group"style="max-width:400px;margin:auto;">
-        <label for="exampleInputEmail1" style="color:#fff">Bathroom</label>
-        <div class="switch-field">
-          <input type="radio" id="radio-bhk-1" name="bathroom" value="1" {% if bathroom == 1 %}checked{% endif %}/>
-          <label for="radio-bhk-1">1</label>
-          <input type="radio" id="radio-bhk-2" name="bathroom" value="2" {% if bathroom == 2 or not bathroom %}checked{% endif %}/>
-          <label for="radio-bhk-2">2</label>
-          <input type="radio" id="radio-bhk-3" name="bathroom" value="3" {% if bathroom == 3 %}checked{% endif %}/>
-          <label for="radio-bhk-3">3</label>
-          <input type="radio" id="radio-bhk-4" name="bathroom" value="4" {% if bathroom == 4 %}checked{% endif %}/>
-          <label for="radio-bhk-4">4</label>
-          <input type="radio" id="radio-bhk-5" name="bathroom" value="5" {% if bathroom == 5 %}checked{% endif %}/>
-          <label for="radio-bhk-5">5</label>
+
+    <div class="container">
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 24px;">
+            <a href="{% url 'history' %}" class="logout-btn" style="background: rgba(255, 255, 255, 0.05);">
+                <i class="fas fa-history"></i> History
+            </a>
+            <a href="{% url 'dashboard' %}" class="logout-btn" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                <i class="fas fa-chart-line"></i> Insights
+            </a>
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
-      </div>
-      <div class="form-group"style="max-width:400px;margin:auto;">
-        <label for="exampleInputEmail1" style="color:#fff">Bedroom</label>
-        {% comment %} <input type="number" name="bedroom" class="form-control" aria-describedby="emailHelp" placeholder="Enter bedroom" required> {% endcomment %}
-        <div class="switch-field">
-          <input type="radio" id="radio-bed-1" name="bedroom" value="1" {% if bedroom == 1 %}checked{% endif %}/>
-          <label for="radio-bed-1">1</label>
-          <input type="radio" id="radio-bed-2" name="bedroom" value="2" {% if bedroom == 2 or not bedroom %}checked{% endif %}/>
-          <label for="radio-bed-2">2</label>
-          <input type="radio" id="radio-bed-3" name="bedroom" value="3" {% if bedroom == 3 %}checked{% endif %}/>
-          <label for="radio-bed-3">3</label>
-          <input type="radio" id="radio-bed-4" name="bedroom" value="4" {% if bedroom == 4 %}checked{% endif %}/>
-          <label for="radio-bed-4">4</label>
-          <input type="radio" id="radio-bed-5" name="bedroom" value="5" {% if bedroom == 5 %}checked{% endif %}/>
-          <label for="radio-bed-5">5</label>
+
+        <div class="header">
+            <h2>Bangalore House Price Calculator</h2>
+            <p style="color: var(--text-muted);">Enter property details to get an estimated market price</p>
         </div>
-      </div>
-      <div class="form-group" style="padding-top:15px;">
-    <button type="submit" style="display: block;
-    margin: 0 auto;background-color:#FF4F55;color:white;font-weight:700; width:60%;border:none" class="btn btn-primary">Calculate</button>
-      </div>
-  </form>
-  {% if data != None %}
-  <h4 style="background-color:rgba(0, 0, 0, 0.8);color:#FFC300;text-align:center;padding-bottom:5px">{{data}}</h4>
-  {% endif %}
-</div>
-</div>
+
+        <form method="POST" action="{% url 'price_prediction' %}">
+            {% csrf_token %}
+            
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="locationSelect">Location</label>
+                    <select class="location-select" id="locationSelect" name="location" required>
+                        <option disabled value="" {% if not selected_location %}selected{% endif %}>Choose a neighborhood...</option>
+                        {% for i in locations %}
+                        <option value="{{i}}" {% if i == selected_location %}selected{% endif %}>{{i|title}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="sqft">Square Feet (Total Area)</label>
+                    <input type="number" min="300" id="sqft" name="square_feet" class="form-control" placeholder="Min 300 sqft" value="{{ sqft }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Bathrooms</label>
+                    <div class="switch-field">
+                        {% for i in "12345" %}
+                        <input type="radio" id="bath-{{i}}" name="bathroom" value="{{i}}" {% if bathroom|stringformat:"i" == i %}checked{% elif not bathroom and i == "2" %}checked{% endif %}/>
+                        <label for="bath-{{i}}">{{i}}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Bedrooms (BHK)</label>
+                    <div class="switch-field">
+                        {% for i in "12345" %}
+                        <input type="radio" id="bed-{{i}}" name="bedroom" value="{{i}}" {% if bedroom|stringformat:"i" == i %}checked{% elif not bedroom and i == "2" %}checked{% endif %}/>
+                        <label for="bed-{{i}}">{{i}}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-calculate">
+                <i class="fas fa-calculator"></i> Calculate Estimated Price
+            </button>
+        </form>
+
+        {% if data %}
+        <div class="result-container">
+            <p style="margin-bottom: 8px; font-weight: 500;">Prediction Result</p>
+            <h4 class="result-value">{{ data }}</h4>
+            <div style="margin-top: 15px;">
+                <a href="{% url 'download_report' %}?location={{selected_location}}&sqft={{sqft}}&bathroom={{bathroom}}&bedroom={{bedroom}}&result={{data}}" class="nav-btn" style="display: inline-flex; justify-content: center; width: auto; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <i class="fas fa-file-pdf"></i> Download PDF Report
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Simple client-side validation or interaction if needed
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form');
+            form.addEventListener('submit', () => {
+                const btn = document.querySelector('.btn-calculate');
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Calculating...';
+            });
+        });
+    </script>
 </body>
-</html> 
-
-
-
+</html>

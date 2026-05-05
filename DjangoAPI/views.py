@@ -11,11 +11,18 @@ from .serializer import HousesSerializers
 
 import pickle
 import json 
+import os
 import numpy as np 
 from sklearn import preprocessing 
 import pandas as pd 
 from django.shortcuts import render, redirect 
 from django.contrib import messages 
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from xhtml2pdf import pisa
+from datetime import datetime
 
 class CustomerView(viewsets.ModelViewSet): 
     queryset = Houses.objects.all() 
@@ -55,6 +62,7 @@ def status(location,sqft,bhk,bath):
     return round(max(0, prediction), 2)
 
        
+@login_required(login_url='login')
 def price_prediction(request):
     json_data = '''
 {
@@ -349,7 +357,17 @@ def price_prediction(request):
         elif result <= 0:
             result = "Please enter realistic values (e.g., 500+ sqft)"
         else:
-            result = "Estimated Price : " + str(result) + " Lakhs"
+            result_str = str(result) + " Lakhs"
+            # Save to history
+            Houses.objects.create(
+                user=request.user,
+                location=location,
+                sqft=sqft,
+                bathroom=bathroom,
+                bedroom=bedroom,
+                predicted_price=result_str
+            )
+            result = "Estimated Price : " + result_str
 
         context = {
             "data": result,
@@ -361,3 +379,112 @@ def price_prediction(request):
         }
         return render(request, 'form.html', context) 
     return render(request, 'form.html',{"locations":location_columns})
+
+
+def signup(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if password != confirm_password:
+            messages.error(request, "Passwords do not match")
+            return render(request, 'signup.html')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists")
+            return render(request, 'signup.html')
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.save()
+        login(request, user)
+        return redirect('price_prediction')
+    
+    return render(request, 'signup.html')
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('price_prediction')
+        else:
+            messages.error(request, "Invalid username or password")
+            return render(request, 'login.html')
+            
+    return render(request, 'login.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+@login_required(login_url='login')
+def dashboard(request):
+    # Prepare data for charts
+    base_path = os.path.dirname(__file__)
+    columns_path = os.path.join(base_path, "columns.json")
+    with open(columns_path, "r") as f:
+        data_columns = json.load(f)['data_columns']
+    
+    locations = data_columns[3:]
+    
+    # Select some representative locations for comparison
+    popular_locations = ['whitefield', 'sarjapur  road', 'electronic city', 'kanakpura road', 'thanisandra', 'yelahanka', 'hebbal', 'marathahalli', 'raja rajeshwari nagar', 'bannerghatta road']
+    
+    # Filter only those that actually exist in the data columns
+    popular_locations = [loc for loc in popular_locations if loc in locations]
+    
+    # Get predictions for these locations (1000 sqft, 2 BHK, 2 Bath)
+    chart_data = []
+    for loc in popular_locations:
+        price = status(loc, 1000, 2, 2)
+        if not isinstance(price, str):
+            chart_data.append({'location': loc.title(), 'price': price})
+    
+    # Sort by price
+    chart_data = sorted(chart_data, key=lambda x: x['price'], reverse=True)
+    
+    labels = [item['location'] for item in chart_data]
+    prices = [item['price'] for item in chart_data]
+
+    context = {
+        'labels': json.dumps(labels),
+        'prices': json.dumps(prices),
+    }
+    return render(request, 'dashboard.html', context)
+
+@login_required(login_url='login')
+def download_report(request):
+    location = request.GET.get('location', '')
+    sqft = request.GET.get('sqft', '')
+    bathroom = request.GET.get('bathroom', '')
+    bedroom = request.GET.get('bedroom', '')
+    result = request.GET.get('result', '')
+    
+    context = {
+        'location': location,
+        'sqft': sqft,
+        'bathroom': bathroom,
+        'bedroom': bedroom,
+        'result': result,
+        'date': datetime.now().strftime('%d %b %Y'),
+    }
+    
+    template_path = 'report_template.html'
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="valuation_report_{location}.pdf"'
+    
+    template = render(request, template_path, context)
+    pisa_status = pisa.CreatePDF(template.content, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + template.content + '</pre>')
+    return response
+
+@login_required(login_url='login')
+def history(request):
+    user_history = Houses.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'history.html', {'history': user_history})
