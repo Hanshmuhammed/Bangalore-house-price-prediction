@@ -1,94 +1,91 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="en">
-<head> 
+
+<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Price Calculator | Bangalore House Price Prediction</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="{% static 'DjangoAPI/style.css' %}?v=1.1" />
 </head>
+
 <body>
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-    </div>
+    <div class="app-container">
+        {% with active_page='predictor' %}
+        {% include 'sidebar.html' %}
+        {% endwith %}
 
-    <div class="container">
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 24px;">
-            <a href="{% url 'history' %}" class="logout-btn" style="background: rgba(255, 255, 255, 0.05);">
-                <i class="fas fa-history"></i> History
-            </a>
-            <a href="{% url 'dashboard' %}" class="logout-btn" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
-                <i class="fas fa-chart-line"></i> Insights
-            </a>
-            <a href="{% url 'logout' %}" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </div>
-
-        <div class="header">
-            <h2>Bangalore House Price Calculator</h2>
-            <p style="color: var(--text-muted);">Enter property details to get an estimated market price</p>
-        </div>
-
-        <form method="POST" action="{% url 'price_prediction' %}">
-            {% csrf_token %}
-            
-            <div class="form-grid">
-                <div class="form-group full-width">
-                    <label for="locationSelect">Location</label>
-                    <select class="location-select" id="locationSelect" name="location" required>
-                        <option disabled value="" {% if not selected_location %}selected{% endif %}>Choose a neighborhood...</option>
-                        {% for i in locations %}
-                        <option value="{{i}}" {% if i == selected_location %}selected{% endif %}>{{i|title}}</option>
-                        {% endfor %}
-                    </select>
+        <main class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h2>Bangalore House Price Calculator</h2>
+                    <p style="color: var(--text-muted);">Enter property details to get an estimated market price</p>
                 </div>
 
-                <div class="form-group">
-                    <label for="sqft">Square Feet (Total Area)</label>
-                    <input type="number" min="300" id="sqft" name="square_feet" class="form-control" placeholder="Min 300 sqft" value="{{ sqft }}" required>
-                </div>
+                <form method="POST" action="{% url 'price_prediction' %}">
+                    {% csrf_token %}
 
-                <div class="form-group">
-                    <label>Bathrooms</label>
-                    <div class="switch-field">
-                        {% for i in "12345" %}
-                        <input type="radio" id="bath-{{i}}" name="bathroom" value="{{i}}" {% if bathroom|stringformat:"i" == i %}checked{% elif not bathroom and i == "2" %}checked{% endif %}/>
-                        <label for="bath-{{i}}">{{i}}</label>
-                        {% endfor %}
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="locationSelect">Location</label>
+                            <select class="location-select" id="locationSelect" name="location" required>
+                                <option disabled value="" {% if not selected_location %}selected{% endif %}>Choose a
+                                    neighborhood...</option>
+                                {% for i in locations %}
+                                <option value="{{i}}" {% if i == selected_location %}selected{% endif %}>{{i|title}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sqft">Square Feet (Total Area)</label>
+                            <input type="number" min="300" id="sqft" name="square_feet" class="form-control"
+                                placeholder="Min 500 sqft" value="{{ sqft }}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Bathrooms</label>
+                            <div class="switch-field">
+                                {% for i in "12345" %}
+                                <input type="radio" id="bath-{{i}}" name="bathroom" value="{{i}}" {% if bathroom|stringformat:"i" == i %}checked{% elif not bathroom and i == "2" %}checked{% endif %} />
+                                <label for="bath-{{i}}">{{i}}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Bedrooms (BHK)</label>
+                            <div class="switch-field">
+                                {% for i in "12345" %}
+                                <input type="radio" id="bed-{{i}}" name="bedroom" value="{{i}}" {% if bedroom|stringformat:"i" == i %}checked{% elif not bedroom and i == "2" %}checked{% endif %} />
+                                <label for="bed-{{i}}">{{i}}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-calculate">
+                        <i class="fas fa-calculator"></i> Calculate Estimated Price
+                    </button>
+                </form>
+
+                {% if data %}
+                <div class="result-container">
+                    <p style="margin-bottom: 8px; font-weight: 500;">Prediction Result</p>
+                    <h4 class="result-value">{{ data }}</h4>
+                    <div style="margin-top: 15px;">
+                        <a href="{% url 'download_report' %}?location={{selected_location}}&sqft={{sqft}}&bathroom={{bathroom}}&bedroom={{bedroom}}&result={{data}}"
+                            class="nav-btn"
+                            style="display: inline-flex; justify-content: center; width: auto; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                            <i class="fas fa-file-pdf"></i> Download PDF Report
+                        </a>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label>Bedrooms (BHK)</label>
-                    <div class="switch-field">
-                        {% for i in "12345" %}
-                        <input type="radio" id="bed-{{i}}" name="bedroom" value="{{i}}" {% if bedroom|stringformat:"i" == i %}checked{% elif not bedroom and i == "2" %}checked{% endif %}/>
-                        <label for="bed-{{i}}">{{i}}</label>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% endif %}
             </div>
-
-            <button type="submit" class="btn-calculate">
-                <i class="fas fa-calculator"></i> Calculate Estimated Price
-            </button>
-        </form>
-
-        {% if data %}
-        <div class="result-container">
-            <p style="margin-bottom: 8px; font-weight: 500;">Prediction Result</p>
-            <h4 class="result-value">{{ data }}</h4>
-            <div style="margin-top: 15px;">
-                <a href="{% url 'download_report' %}?location={{selected_location}}&sqft={{sqft}}&bathroom={{bathroom}}&bedroom={{bedroom}}&result={{data}}" class="nav-btn" style="display: inline-flex; justify-content: center; width: auto; background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                    <i class="fas fa-file-pdf"></i> Download PDF Report
-                </a>
-            </div>
-        </div>
-        {% endif %}
+        </main>
     </div>
 
     <script>
@@ -102,4 +99,5 @@
         });
     </script>
 </body>
+
 </html>

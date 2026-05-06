@@ -178,21 +178,19 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1 style="font-size: 28px; font-weight: 700;">Prediction History</h1>
-                <p style="color: var(--text-muted);">View and manage your past property valuations</p>
-            </div>
-            <div class="nav-links">
-                <a href="{% url 'price_prediction' %}" class="nav-btn">
-                    <i class="fas fa-calculator"></i> Predictor
-                </a>
-                <a href="{% url 'dashboard' %}" class="nav-btn">
-                    <i class="fas fa-chart-line"></i> Insights
-                </a>
-            </div>
-        </div>
+    <div class="app-container">
+        {% with active_page='history' %}
+            {% include 'sidebar.html' %}
+        {% endwith %}
+
+        <main class="main-content">
+            <div class="container">
+                <div class="header">
+                    <div>
+                        <h1 style="font-size: 28px; font-weight: 700;">Prediction History</h1>
+                        <p style="color: var(--text-muted);">View and manage your past property valuations</p>
+                    </div>
+                </div>
 
         {% if messages %}
         <div class="messages">
@@ -245,6 +243,9 @@
             </div>
             {% endif %}
         </div>
+    </div>
+            </div>
+        </main>
     </div>
 </body>
 </html>

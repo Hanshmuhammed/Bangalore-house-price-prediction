@@ -498,3 +498,167 @@ def delete_history(request, pk):
     except Houses.DoesNotExist:
         messages.error(request, 'Record not found.')
     return redirect('history')
+
+@login_required(login_url='login')
+def emi_calculator(request):
+    context = {}
+    if request.method == 'POST':
+        p = float(request.POST.get('amount', 0))
+        r = float(request.POST.get('interest', 0))
+        n = int(request.POST.get('tenure', 0)) * 12 # Convert years to months
+        
+        if p > 0 and r > 0 and n > 0:
+            # Monthly interest rate
+            mr = r / (12 * 100)
+            # EMI Formula: P * r * (1+r)^n / ((1+r)^n - 1)
+            emi = p * mr * ((1 + mr)**n) / (((1 + mr)**n) - 1)
+            total_payment = emi * n
+            total_interest = total_payment - p
+            
+            context = {
+                'emi': round(emi, 2),
+                'total_payment': round(total_payment, 2),
+                'total_interest': round(total_interest, 2),
+                'principal': p,
+                'interest_rate': r,
+                'tenure': n / 12,
+                'calculated': True
+            }
+    return render(request, 'emi_calculator.html', context)
+
+@login_required(login_url='login')
+def compare_locations(request):
+    base_path = os.path.dirname(__file__)
+    columns_path = os.path.join(base_path, "columns.json")
+    with open(columns_path, "r") as f:
+        data_columns = json.load(f)['data_columns']
+    locations = data_columns[3:]
+
+    context = {'locations': locations}
+
+    if request.method == 'POST':
+        sqft = request.POST.get('square_feet', '1000')
+        bhk = request.POST.get('bedroom', '2')
+        bath = request.POST.get('bathroom', '2')
+        selected = request.POST.getlist('selected_locations')
+
+        # Limit to 5 locations max
+        selected = selected[:5]
+
+        results = []
+        for loc in selected:
+            price = status(loc, sqft, bhk, bath)
+            if not isinstance(price, str) and price > 0:
+                results.append({
+                    'location': loc.title(),
+                    'location_raw': loc,
+                    'price': price,
+                    'price_per_sqft': round(price * 100000 / float(sqft), 2) if float(sqft) > 0 else 0,
+                })
+
+        results = sorted(results, key=lambda x: x['price'], reverse=True)
+
+        # Find cheapest & most expensive
+        if results:
+            cheapest = min(results, key=lambda x: x['price'])
+            expensive = max(results, key=lambda x: x['price'])
+            for r in results:
+                r['is_cheapest'] = r['location'] == cheapest['location']
+                r['is_expensive'] = r['location'] == expensive['location']
+                if expensive['price'] > 0:
+                    r['bar_width'] = round((r['price'] / expensive['price']) * 100)
+                else:
+                    r['bar_width'] = 0
+
+        labels = [r['location'] for r in results]
+        prices = [r['price'] for r in results]
+
+        context.update({
+            'results': results,
+            'labels': json.dumps(labels),
+            'prices': json.dumps(prices),
+            'sqft': sqft,
+            'bhk': bhk,
+            'bath': bath,
+            'selected_locations': selected,
+            'compared': True,
+        })
+
+    return render(request, 'comparison.html', context)
+
+@login_required(login_url='login')
+def user_profile(request):
+    user = request.user
+    # Total predictions made by the user
+    total_predictions = Houses.objects.filter(user=user).count()
+    # Recent 5 predictions
+    recent = Houses.objects.filter(user=user).order_by('-created_at')[:5]
+    context = {
+        'total_predictions': total_predictions,
+        'recent_predictions': recent,
+    }
+    return render(request, 'profile.html', context)
+
+@login_required(login_url='login')
+def recommendations(request):
+    base_path = os.path.dirname(__file__)
+    columns_path = os.path.join(base_path, "columns.json")
+    with open(columns_path, "r") as f:
+        data_columns = json.load(f)['data_columns']
+    locations = data_columns[3:]
+
+    context = {'active_page': 'recommendations'}
+
+    if request.method == 'POST':
+        budget = float(request.POST.get('budget', 0))
+        bhk = int(request.POST.get('bhk', 2))
+        
+        # Estimate sqft based on BHK
+        sqft = bhk * 600
+        bath = max(1, bhk - 1) # Simple logic for bathrooms
+
+        recommendations = []
+        
+        # We can't iterate through ALL 240+ locations on every request, it's slow.
+        # Let's pick a diverse set of ~40 popular locations for recommendations
+        sample_locations = [
+            'whitefield', 'sarjapur  road', 'electronic city', 'kanakpura road', 
+            'thanisandra', 'yelahanka', 'hebbal', 'marathahalli', 
+            'raja rajeshwari nagar', 'bannerghatta road', 'hennur road', 
+            'jp nagar', ' Uttarahalli', 'HSR Layout', 'Electronic City Phase II',
+            '7th Phase JP Nagar', 'Bellandur', 'Rajaji Nagar', 'Begur Road',
+            'Varthur', 'Kengeri', 'Binny Pete', 'Kothanur', 'Horamavu',
+            'Ramamurthy Nagar', 'Malleshwaram', 'Old Madras Road', 'Yeshwanthpur',
+            'Kaggadasapura', 'Kanakapura', 'Hosur Road', 'Bisuvanahalli',
+            'Jakkur', 'Hennur', 'Thigalarapalya', 'Hosa Road', 'Kudlu Gate',
+            'Panathur', 'Brookefield', 'Babusapalaya'
+        ]
+        
+        # Filter existing
+        sample_locations = [loc for loc in sample_locations if loc.lower() in [l.lower() for l in locations]]
+
+        for loc in sample_locations:
+            price = status(loc, sqft, bhk, bath)
+            if not isinstance(price, str) and price > 0:
+                # If within budget or max 20% over
+                if price <= budget * 1.2:
+                    diff = budget - price
+                    recommendations.append({
+                        'location': loc.title(),
+                        'price': price,
+                        'sqft': sqft,
+                        'diff': diff,
+                        'status': 'Under Budget' if diff >= 0 else 'Slightly Over'
+                    })
+
+        # Sort by proximity to budget
+        recommendations = sorted(recommendations, key=lambda x: abs(x['diff']))[:12]
+
+        context.update({
+            'recommendations': recommendations,
+            'budget': budget,
+            'bhk': bhk,
+            'searched': True
+        })
+
+    return render(request, 'recommendations.html', context)
