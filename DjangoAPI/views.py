@@ -488,3 +488,13 @@ def download_report(request):
 def history(request):
     user_history = Houses.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'history.html', {'history': user_history})
+
+@login_required(login_url='login')
+def delete_history(request, pk):
+    try:
+        prediction = Houses.objects.get(pk=pk, user=request.user)
+        prediction.delete()
+        messages.success(request, 'Prediction record deleted successfully.')
+    except Houses.DoesNotExist:
+        messages.error(request, 'Record not found.')
+    return redirect('history')

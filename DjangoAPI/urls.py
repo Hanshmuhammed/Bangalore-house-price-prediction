@@ -13,4 +13,5 @@ urlpatterns = [
                 path('dashboard/', views.dashboard, name='dashboard'),
                 path('download-report/', views.download_report, name='download_report'),
                 path('history/', views.history, name='history'),
+                path('delete-history/<int:pk>/', views.delete_history, name='delete_history'),
               ]
